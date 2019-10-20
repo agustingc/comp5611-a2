@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from numpy import array, arange
+from numpy import array, arange, mean, sum, log
 
 '''
 NOTE: You are not allowed to import any function from numpy's linear 
@@ -52,8 +52,9 @@ def problem_3_2_5():
                  370.5, 372.2, 374.9, 376.7, 378.7, 381.0, 382.9, 384.7])
 
     ## YOUR CODE HERE
+    a, b = linear_regression(year, ppm)
+    return b
     raise Exception("Not implemented")
-
 
 def extrapolation_3_2_5():
     '''
@@ -63,8 +64,26 @@ def extrapolation_3_2_5():
     Hint: Use the result of the previous function.
     '''
     ## YOUR CODE HERE
+    year = arange(1994, 2010)  # from 1994 to 2009
+    ppm = array([356.8, 358.2, 360.3, 361.8, 364.0, 365.7, 366.7, 368.2,
+                 370.5, 372.2, 374.9, 376.7, 378.7, 381.0, 382.9, 384.7])
+    a, b = linear_regression(year, ppm)
+    return a + b*2020
     raise Exception("Not implemented")
 
+'''
+    Added functions
+'''
+#From course notes
+def linear_regression(x_data, y_data):
+    '''
+    Returns (a, b, stdev)
+    '''
+    xbar = mean(x_data)
+    ybar = mean(y_data)
+    b = sum(y_data*(x_data-xbar))/sum(x_data*(x_data-xbar))
+    a = ybar - xbar*b
+    return (a, b)
 
 '''
     Part 3: Non-linear equations
@@ -101,8 +120,11 @@ def f_and_df(t):
     M0=2.8E6
     mdot=13.3E3
     g=9.81
-    
+
     ## YOUR CODE HERE
+    v = u*log(M0/(M0-mdot*t))-g*t
+    df = u*mdot/(M0-mdot*t)-g
+    return v, df
     raise Exception("Not implemented")
 
 def problem_4_1_19(v1, acc):
@@ -116,8 +138,49 @@ def problem_4_1_19(v1, acc):
     Hint: plot the function to get a first guess at the solution.
     '''
 
-    ## YOUR CODE HERE
+    #initial estimate is x = v1/2
+    return newton_raphson(saturn_rocket_speed,v1,saturn_speed_diff,v1/2,acc)
     raise Exception("Not implemented")   
+
+'''
+    Added functions
+'''
+#From course notes, slightly modifed
+#@adj is adjustment to f to solve root of equation f(x) = f - adj
+def newton_raphson(f, adj, diff, init_x, tol, max_iter=1000):
+    '''
+    f is the function for which a zero is sought
+    diff is the derivative of the function
+    init_x is the initial estimate
+    tol is the tolerance (accuracy) of the solution
+    max_iter is the desired maximal number of iterations
+    '''
+    x = init_x
+    for i in range(max_iter): # we will break out of the loop when we find the root
+        delta_x = -(f(x)-adj)/diff(x)
+        x = x + delta_x
+        if abs(delta_x) <= tol: # check delta_x we just used to move x
+            return x
+    raise Exception("Unable to find a root")
+
+def saturn_rocket_speed(t):
+    u=2510
+    M0=2.8E6
+    mdot=13.3E3
+    g=9.81
+
+    v = u*log(M0/(M0-mdot*t))-g*t
+    return v
+
+def saturn_speed_diff(t):
+    u=2510
+    M0=2.8E6
+    mdot=13.3E3
+    g=9.81
+
+    df = u * mdot / (M0 - mdot * t) - g
+    return df
+
 
 '''
     Part 4: Systems of non-linear equations
