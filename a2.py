@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from numpy import array, arange, mean, sum, log
+from numpy import array, arange, mean, sum, log, zeros,sqrt,prod, diagonal,shape, float_, dot, argmax
 
 '''
 NOTE: You are not allowed to import any function from numpy's linear 
@@ -215,6 +215,12 @@ def f_4_1_26(x_data, y_data, x):
     Test: function 'test_f' in 'tests/test_problem_4_1_26.py'
     '''
     ## YOUR CODE HERE
+    f = array([
+        (x_data[0] - x[0])**2 + (y_data[0] - x[1])**2 - x[2]**2,
+        (x_data[1] - x[0])**2 + (y_data[1] - x[1])**2 - x[2]**2,
+        (x_data[2] - x[0])**2 + (y_data[2] - x[1])**2 - x[2]**2
+        ])
+    return f
     raise Exception("Not implemented")
 
 def problem_4_1_26(x_data, y_data):
@@ -232,7 +238,55 @@ def problem_4_1_26(x_data, y_data):
           a zero of f_4_1_26.
     '''
     ## YOUR CODE HERE
+    a = mean(x_data)
+    b = mean(y_data)
+    rs = []
+    for x,y in zip(x_data, y_data):
+        rs.append(sqrt((x-a)**2 + (y-b)**2))
+    r = mean(rs)
+    return newton_raphson_system(f_4_1_26,x_data, y_data,array([a,b,r]))
     raise Exception("Not implemented")
+
+'''
+    Added functions
+'''
+
+#From notes, slightly modified
+def newton_raphson_system(f, x_data, y_data, init_x, epsilon=10E-4, max_iterations=100):
+    '''
+    Return a solution of f(x)=0 by Newton-Raphson method.
+    init_x is the initial guess of the solution
+    '''
+    x = init_x
+    for i in range(max_iterations):
+        J = jacobian(f, x_data, y_data, x)
+        delta_x = gauss_multiple_pivot(J, -f(x_data, y_data, x)) # uses function from A1
+        x = x + delta_x
+        if sqrt(sum(delta_x**2)) <= epsilon:
+            print("Converged in {} iterations".format(i))
+            return x
+    raise Exception("Could not find root!")
+
+#From notes
+def jacobian(f, x_data, y_data, x):
+    '''
+    Returns the Jacobian matrix of f taken in x J(x)
+    '''
+    n = len(x)
+    jac = zeros((n, n))
+    h = 10E-4
+    fx = f(x_data, y_data,x)
+    # go through the columns of J
+    for j in range(n):
+        # compute x + h ej
+        old_xj = x[j]
+        x[j] += h
+        # update the Jacobian matrix (eq 3)
+        # Now x is x + h*ej
+        jac[:, j] = (f(x_data, y_data, x)-fx) / h
+        # restore x[j]
+        x[j] = old_xj
+    return jac
 
 '''
     Part 5: Interpolation and Numerical differentiation
@@ -281,3 +335,100 @@ def error_5_1_11(x):
     '''
     ## YOUR CODE HERE
     raise Exception("Not implemented")
+
+
+
+'''
+    From A1
+'''
+
+def gauss_multiple_pivot(a, b):
+    '''
+      Task: This function returns the same result as the previous one,
+            except that it uses scaled row pivoting.
+      Parameters: a is a numpy array representing a square matrix. b is a numpy
+            array representing a matrix with as many lines as in a.
+      Test: This function is is tested by the function
+            test_gauss_multiple_pivot in tests/test_gauss_multiple.py.
+    '''
+
+    ## YOUR CODE GOES HERE
+    gauss_elimin_pivot(a,b)
+    ''' The determinant of a triangular matrix 
+        is the product of the diagonal elements
+    '''
+    det = prod(diagonal(a))
+    assert(det!=0)
+    return gauss_substitution(a,b)
+    raise Exception("Function not implemented")
+
+def gauss_substitution(a,b):
+    n, m = shape(a)
+    #Verify the n*n dimensions of B
+    n2=1
+    m2=1
+    if len(shape(b))==1:
+        n2, = shape(b)
+    elif len(shape(b))==2:
+        n2, m2 = shape(b)
+    else:
+        raise Exception("B has more than 2 dimensions")
+    assert (n==n2)
+    if m2>1:
+        x = zeros([n,m2], dtype= float_)
+        for i in range (n-1,-1,-1): #decreasing index, #range(start,stop[,step]) -> iterates over every row of solution matrix x
+            for j in range(0,m2):
+                x[i,j]=(b[i,j] - dot(a[i,i+1:],x[i+1:,j]) ) / a[i,i]
+        #return n*m system of solutions
+        return x
+    else:
+        x = zeros([n], dtype= float_)
+        for i in range (n-1,-1,-1): #decreasing index, #range(start,stop[,step]) -> iterates over every row of solution matrix x
+            x[i] = (b[i] - dot(a[i,i+1:],x[i + 1:]))/a[i, i]
+        #return n*m system of solutions
+        return x
+
+#for gauss_multiple_pivot
+def swap(a, i, j):
+    if len(shape(a)) == 1:
+        a[i],a[j] = a[j],a[i] # unpacking
+    else:
+        a[[i, j], :] = a[[j, i], :]
+
+#for gauss_multiple_pivot
+def gauss_elimin_pivot(a,b,verbose=False):
+    #A
+    n, m = shape(a)     #must be square
+    #B
+    n2=1
+    m2=1
+    if len(shape(b))==1:
+        n2, = shape(b)   #does not need to be square
+    elif len(shape(b))==2:
+        n2, m2 = shape(b)   #does not need to be square
+    else:
+        raise Exception("B has more than 2 dimensions.")
+    assert(n==n2)
+    #Used for pivoting
+    s = zeros(n, dtype =float_)
+    for i in range (0,n):
+        s[i] = max(abs(a[i, :])) #max of row i in A
+    # Pivoting
+    #print(a)
+    for k in range (0,n-1):     #range(start,stop[,step])
+        p = argmax(abs(a[k:, k]) / s[k:]) + k
+        swap(a,p,k) #swap rows in matrix A
+        swap(b,p,k) #swap rows in matrix b
+        swap(s,p,k) #swap rows in vector  s
+        #Apply row operations
+        for i in range (k+1, n):
+            assert(a[k,k]!=0) #verify what to do later
+            if(a[i,k]!=0): #no need to do anything when lambda is 0
+                lmbda = a[i,k]/a[k,k]
+                a[i,k:n]=a[i,k:n] - lmbda * a[k,k:n] #apply operation to row i of A
+                if m2==1:
+                    b[i] = b[i] - lmbda * b[k]  # apply operation to row i of b
+                else:
+                    b[i,:]=b[i,:] - lmbda * b[k,:] #apply operation to row i of b
+            if verbose:
+                print('a:\n', a, '\nb:\n', b, '\n')
