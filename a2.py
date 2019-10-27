@@ -241,6 +241,8 @@ def problem_4_1_26(x_data, y_data):
     a = mean(x_data)
     b = mean(y_data)
     rs = []
+    #Get a good estimate of x
+    #Taken from https://waxworksmath.com/Authors/G_M/Kiusalaas/NMIEW_Python/kiusalaas.html
     for x,y in zip(x_data, y_data):
         rs.append(sqrt((x-a)**2 + (y-b)**2))
     r = mean(rs)
