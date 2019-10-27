@@ -351,8 +351,6 @@ def error_5_1_11(x):
     ddf = 4*x-0.6
     a, b = d_dd_5_1_11(x)
     return df - a, ddf - b   #return error
-    return
-
     raise Exception("Not implemented")
 
 '''
