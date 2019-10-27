@@ -310,6 +310,10 @@ def interpolant_5_1_11():
     Hint: use code from Chapters 2 and 3.
     '''
     ## YOUR CODE HERE
+    x_data = array([-2.2, -0.3, 0.8, 1.9])
+    y_data = array([15.180, 10.962, 1.920, -2.040])
+    m=3 #desired degree of interpolation polynomial
+    return polynomial_fit(x_data, y_data, m)
     raise Exception("Not implemented")
 
 def d_dd_5_1_11(x):
@@ -321,6 +325,15 @@ def d_dd_5_1_11(x):
     Hint: differentiate the interpolant returned by the previous function.
     '''
     ## YOUR CODE HERE
+    x_data = array([-2.2, -0.3, 0.8, 1.9])
+    y_data = array([15.180, 10.962, 1.920, -2.040])
+    m = len(x_data) -1
+    coeffs = polynomial_fit(x_data, y_data, m)
+    d_coeffs = df_interpol(coeffs, m)
+    dd_coeffs = df_interpol(d_coeffs,m-1)   #d_coeffs has m-1 coefficients
+    df = eval_p(d_coeffs,x)
+    ddf = eval_p(dd_coeffs,x)
+    return df,ddf
     raise Exception("Not implemented")
 
 def error_5_1_11(x):
@@ -334,9 +347,52 @@ def error_5_1_11(x):
           the result to the output of the previous function.
     '''
     ## YOUR CODE HERE
+    df = 2*(x**2)-0.6*x-8.56
+    ddf = 4*x-0.6
+    a, b = d_dd_5_1_11(x)
+    return df - a, ddf - b   #return error
+    return
+
     raise Exception("Not implemented")
 
+'''
+    Added functions
+'''
+#From course notes, slightly modified
+def df_interpol(coeffs, n):
+    d_coeffs = zeros(n)
+    for i in range(n):
+        d_coeffs[i] = (i+1)*coeffs[i+1] # differentiation from coefficients
+    return d_coeffs
 
+#From course notes, CHAPTER 3, slightly modified
+def polynomial_fit(x_data, y_data, m):
+    '''
+    Returns the ai
+    '''
+    # x_power[i] will contain sum_i x_i^k, k = 0, 2m
+    x_powers = zeros(2*m+1, dtype=float_)
+    b = zeros(m+1, dtype = float_)
+    for i in range(2*m+1):
+        x_powers[i] = sum(x_data**i)
+        if i < (m+1):
+            b[i] = sum(y_data*x_data**i)
+    a = zeros((m+1, m+1), dtype = float_)
+    for k in range(0,m+1):
+        for j in range(0,m+1):
+            a[k, j] = x_powers[j+k]
+    return gauss_multiple_pivot(a,b)
+
+#From course notes, CHAPTER 4
+def eval_p(a, x):
+    '''
+    Returns P(x) where the coefficients of P are in a
+    '''
+    n = len(a)
+    p = a[n-1]
+    for i in range(2, n+1):
+        p = a[n-i] + x*p
+    return p
 
 '''
     From A1
@@ -362,38 +418,7 @@ def gauss_multiple_pivot(a, b):
     return gauss_substitution(a,b)
     raise Exception("Function not implemented")
 
-def gauss_substitution(a,b):
-    n, m = shape(a)
-    #Verify the n*n dimensions of B
-    n2=1
-    m2=1
-    if len(shape(b))==1:
-        n2, = shape(b)
-    elif len(shape(b))==2:
-        n2, m2 = shape(b)
-    else:
-        raise Exception("B has more than 2 dimensions")
-    assert (n==n2)
-    if m2>1:
-        x = zeros([n,m2], dtype= float_)
-        for i in range (n-1,-1,-1): #decreasing index, #range(start,stop[,step]) -> iterates over every row of solution matrix x
-            for j in range(0,m2):
-                x[i,j]=(b[i,j] - dot(a[i,i+1:],x[i+1:,j]) ) / a[i,i]
-        #return n*m system of solutions
-        return x
-    else:
-        x = zeros([n], dtype= float_)
-        for i in range (n-1,-1,-1): #decreasing index, #range(start,stop[,step]) -> iterates over every row of solution matrix x
-            x[i] = (b[i] - dot(a[i,i+1:],x[i + 1:]))/a[i, i]
-        #return n*m system of solutions
-        return x
 
-#for gauss_multiple_pivot
-def swap(a, i, j):
-    if len(shape(a)) == 1:
-        a[i],a[j] = a[j],a[i] # unpacking
-    else:
-        a[[i, j], :] = a[[j, i], :]
 
 #for gauss_multiple_pivot
 def gauss_elimin_pivot(a,b,verbose=False):
@@ -432,3 +457,41 @@ def gauss_elimin_pivot(a,b,verbose=False):
                     b[i,:]=b[i,:] - lmbda * b[k,:] #apply operation to row i of b
             if verbose:
                 print('a:\n', a, '\nb:\n', b, '\n')
+
+
+def gauss_substitution(a, b):
+    n, m = shape(a)
+    # Verify the n*n dimensions of B
+    n2 = 1
+    m2 = 1
+    if len(shape(b)) == 1:
+        n2, = shape(b)
+    elif len(shape(b)) == 2:
+        n2, m2 = shape(b)
+    else:
+        raise Exception("B has more than 2 dimensions")
+    assert (n == n2)
+    if m2 > 1:
+        x = zeros([n, m2], dtype=float_)
+        for i in range(n - 1, -1,
+                       -1):  # decreasing index, #range(start,stop[,step]) -> iterates over every row of solution matrix x
+            for j in range(0, m2):
+                x[i, j] = (b[i, j] - dot(a[i, i + 1:], x[i + 1:, j])) / a[i, i]
+        # return n*m system of solutions
+        return x
+    else:
+        x = zeros([n], dtype=float_)
+        for i in range(n - 1, -1,
+                       -1):  # decreasing index, #range(start,stop[,step]) -> iterates over every row of solution matrix x
+            x[i] = (b[i] - dot(a[i, i + 1:], x[i + 1:])) / a[i, i]
+        # return n*m system of solutions
+        return x
+
+    # for gauss_multiple_pivot
+
+
+def swap(a, i, j):
+    if len(shape(a)) == 1:
+        a[i], a[j] = a[j], a[i]  # unpacking
+    else:
+        a[[i, j], :] = a[[j, i], :]
