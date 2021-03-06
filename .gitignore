@@ -1,2 +1,2 @@
-*.yml
+.travis.yml
 __pycache__/
